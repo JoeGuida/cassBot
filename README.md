@@ -1,7 +1,7 @@
 # CassBot
 The Reddit and Discord bot for CassiopeiaMains
-Reddit: reddit.com/r/CassiopeiaMains
-Discord: discord.gg/JmRhzek
+- Reddit: reddit.com/r/CassiopeiaMains
+- Discord: discord.gg/JmRhzek
 
 ## Features
 ### Posting reddit submissions to discord
