@@ -27,7 +27,7 @@ class Reddit(commands.Cog):
         self.embed_color = discord.Color(0x7fff00)
         self.channel_id = 671168589084229642
         self.subreddit = 'CassiopeiaMains'
-        self.timer = 5
+        self.timer = 30
 
     # Pull the last submission that was posted to discord
     # and the newest reddit post, and send the submission
@@ -42,7 +42,7 @@ class Reddit(commands.Cog):
 
             # If the submission is new, send it
             subreddit = self.reddit.subreddit(self.subreddit)
-            for submission in subreddit.new(limit=10):
+            for submission in subreddit.new(limit=1):
                 if submission.id != latest_submission_id:
                     await self.post_submission(submission)
 
