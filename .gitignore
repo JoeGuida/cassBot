@@ -1,0 +1,5 @@
+reddit.json
+settings.ini
+.vscode/
+__pycache__/
+env/
