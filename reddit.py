@@ -25,7 +25,7 @@ class Reddit(commands.Cog):
                                   user_agent=config('REDDIT_USER_AGENT'))
         self.bot.loop.create_task(self.get_newest_submission())
         self.embed_color = discord.Color(0x7fff00)
-        self.channel_id = 671168589084229642
+        self.channel_id = 698318509939359814
         self.subreddit = 'CassiopeiaMains'
         self.timer = 30
 
