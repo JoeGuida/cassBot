@@ -42,10 +42,9 @@ class Reddit(commands.Cog):
 
             # If the submission is new, send it
             subreddit = self.reddit.subreddit(self.subreddit)
-            for submission in subreddit.new():
+            for submission in subreddit.new(limit=1):
                 if submission.id != latest_submission_id:
                     await self.post_submission(submission)
-                    break
 
             # Sleep to run on the timer
             await asyncio.sleep(self.timer)
