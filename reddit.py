@@ -24,7 +24,6 @@ class Reddit(commands.Cog):
                                   client_secret=config('REDDIT_CLIENT_SECRET'),
                                   user_agent=config('REDDIT_USER_AGENT'))
         self.bot.loop.create_task(self.get_newest_submission())
-        self.embed_color = discord.Color(0x7fff00)
         self.channel_id = 698318509939359814
         self.subreddit = 'CassiopeiaMains'
         self.timer = 30
@@ -43,7 +42,8 @@ class Reddit(commands.Cog):
             # If the submission is new, send it
             subreddit = self.reddit.subreddit(self.subreddit)
             for submission in subreddit.new(limit=1):
-                if submission.id != latest_submission_id:
+                if submission.id != latest_submission_id and submission != None:
+                    self.store_latest_submission_id(submission.id)
                     await self.post_submission(submission)
 
             # Sleep to run on the timer
@@ -51,67 +51,53 @@ class Reddit(commands.Cog):
         
     # Take the newest submission and create an embed of the 
     # submissions content and post it to the #reddit channel, 
-    # Send submission id to store_latest_submission() 
-    # if submission is not new (is None), return.
     async def post_submission(self, submission):
-        if submission == None:
-            return
-
-        # Get channel and update reddit.json
+        # Get channel to send the message
         channel = self.bot.get_channel(self.channel_id)
-        self.store_latest_submission(submission.id)
-        await channel.send('A new post has been submitted on /r/CassiopeiaMains!')
         
-        # Create an embed for the submission type
+        # Determine the submission type and pass to create_embed()
         image_filetypes = ['.jpg', '.gif', '.png', '.bmp', '.tif']
-        if submission.selftext == '':
-            # Image Submission
-            if submission.url[-4:] in image_filetypes:
-                embed = self.create_embed(submission, tag='image')
-            # Link Submission
-            else:
-                embed = self.create_embed(submission, tag='link')
-        # Text Submission
+        if submission.url[-4:] in image_filetypes:
+            tag = 'image'
+        elif submission.selftext == '':
+            tag = 'link'
         else:
-            embed = self.create_embed(submission)
+            tag = 'text'
+        # Create an embed for the submission type
+        embed = self.create_embed(submission, tag=tag)
         
-        # Finally send the embed to the channel
+        # Finally send the message with the embed to the channel
+        await channel.send('A new post has been submitted on /r/CassiopeiaMains!')
         await channel.send(embed=embed)
 
     # Take the submission id of the last posted message
-    # and put it in reddit.json under 'submission_id'
-    def store_latest_submission(self, submission_id):
+    # and write json in the format: { 'submission_id': submission_id }
+    def store_latest_submission_id(self, submission_id):
         with open('reddit.json', 'w') as file:
             file.write(json.dumps({ 'submission_id': submission_id }))
 
     # Creates an embed of the reddit submission
-    # Alters the embed based on the submission type
-    # Stored in the tag parameter
+    # Alters the embed based on the tag parameter
     def create_embed(self, submission, tag='text'):
+        # All embed types share the same color, title, timestamp, 
+        # author, and thumbnail, data will hold all the embed options
+        data = {
+            'color': 0x7fff00,
+            'title': submission.title,
+            'author': { 'name': f'/u/{submission.author.name}' },
+            'timestamp': datetime.datetime.utcnow().isoformat(),
+            'thumbnail': { 'url': submission.author.icon_img }
+        }
+        
         if tag == 'image':
-            embed = discord.Embed(color=self.embed_color, 
-                                        title=submission.title[:256],
-                                        url=f'https://www.reddit.com{submission.permalink}',
-                                        timestamp=datetime.datetime.now())
-            embed.set_image(url=submission.url)
-            embed.set_thumbnail(url=submission.author.icon_img)
-            embed.set_author(name=f'/u/{submission.author.name}')
-            return embed
-        elif tag == 'link':
-            embed = discord.Embed(color=self.embed_color, 
-                                  title=submission.title[:256],
-                                  url=f'https://www.reddit.com{submission.permalink}',
-                                  timestamp=datetime.datetime.now())
-            embed.set_thumbnail(url=submission.author.icon_img)
-            embed.set_author(name=f'/u/{submission.author.name}')
-            return embed
+            data['image'] = { 'url': submission.url }
+        if tag in ['image', 'link']:
+            data['url'] = f'https://www.reddit.com{submission.permalink}'
         else:
+            # This '&#x200B;' character is showing up sometimes, remove it
+            # Discord embed descriptionhas a 2048 character max
+            # Limit the submissions selftext to fit the description limit.
             selftext = submission.selftext.replace('&#x200B;', '')
-            embed = discord.Embed(color=self.embed_color, 
-                                       title=submission.title[:256], 
-                                       description=selftext[:2048],
-                                       url=f'https://www.reddit.com{submission.permalink}',
-                                       timestamp=datetime.datetime.now())
-            embed.set_thumbnail(url=submission.author.icon_img)
-            embed.set_author(name=f'/u/{submission.author.name}')
-            return embed
+            data['description'] = selftext[:2048],
+                        
+        return discord.Embed.from_dict(data)
